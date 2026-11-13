@@ -19,5 +19,16 @@ class FeatureVectorChurn(BaseModel):
     autopay_enabled: BinaryInt
 
 
-class DatasetRowChurn(FeatureVectorChurn):
+class DatasetRowChurn(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    monthly_fee: float | None
+    usage_hours: float | None
+    support_requests: int | None
+    account_age_months: int | None
+    failed_payments: int | None
+    region: str | None
+    device_type: str | None
+    payment_method: str | None
+    autopay_enabled: BinaryInt | None
     churn: BinaryInt

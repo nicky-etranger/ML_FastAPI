@@ -22,8 +22,11 @@ def load_dataset() -> pd.DataFrame:
             if sorted(reader.fieldnames or []) != sorted(DATASET_COLUMNS):
                 raise DatasetError("CSV header must contain the churn dataset columns")
             for row in reader:
+                if None in row:
+                    raise DatasetError(f"Invalid CSV row at line {reader.line_num}")
+                values = {key: value.strip() or None if value else None for key, value in row.items()}
                 try:
-                    rows.append(DatasetRowChurn.model_validate(row).model_dump())
+                    rows.append(DatasetRowChurn.model_validate(values).model_dump())
                 except ValidationError as exc:
                     raise DatasetError(f"Invalid CSV row at line {reader.line_num}") from exc
     except FileNotFoundError as exc:
