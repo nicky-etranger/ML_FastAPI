@@ -32,3 +32,8 @@ class DatasetRowChurn(BaseModel):
     payment_method: str | None
     autopay_enabled: BinaryInt | None
     churn: BinaryInt
+
+
+class PredictionResponseChurn(BaseModel):
+    churn: BinaryInt
+    probabilities: dict[int, float]

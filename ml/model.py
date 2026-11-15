@@ -7,6 +7,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from ml.preprocessing import CATEGORICAL_COLUMNS, NUMERIC_COLUMNS
+from schemas.churn import PredictionResponseChurn
 
 
 def train_churn_model(features: pd.DataFrame, target: pd.Series) -> Pipeline:
@@ -37,3 +38,16 @@ def evaluate_churn_model(
         "accuracy": float(accuracy_score(target, predictions)),
         "f1": float(f1_score(target, predictions, zero_division=0)),
     }
+
+
+def predict_churn(pipeline: Pipeline, features: pd.DataFrame) -> list[PredictionResponseChurn]:
+    labels = pipeline.predict(features)
+    probabilities = pipeline.predict_proba(features)
+    classes = [int(label) for label in pipeline.classes_]
+    return [
+        PredictionResponseChurn(
+            churn=int(label),
+            probabilities=dict(zip(classes, map(float, scores), strict=True)),
+        )
+        for label, scores in zip(labels, probabilities, strict=True)
+    ]
