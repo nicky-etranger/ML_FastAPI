@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile
 import joblib
 
 from core import config
+from ml.model import DEFAULT_HYPERPARAMETERS
 
 
 def save_churn_model(model: dict) -> None:
@@ -21,6 +22,9 @@ def save_churn_model(model: dict) -> None:
 
 def load_churn_model() -> dict | None:
     try:
-        return joblib.load(config.MODEL_PATH)
+        model = joblib.load(config.MODEL_PATH)
     except FileNotFoundError:
         return None
+    model["training"].setdefault("model_type", "logreg")
+    model["training"].setdefault("hyperparameters", DEFAULT_HYPERPARAMETERS["logreg"].copy())
+    return model

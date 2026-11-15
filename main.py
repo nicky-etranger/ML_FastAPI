@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from api import dataset, model, prediction
 from ml.dataset import DatasetError
+from ml.model import TrainingError
 from ml.model_store import load_churn_model
 
 
@@ -23,7 +24,8 @@ app.include_router(prediction.router)
 
 
 @app.exception_handler(DatasetError)
-async def dataset_error(request: Request, exc: DatasetError):
+@app.exception_handler(TrainingError)
+async def bad_training_data(request: Request, exc: ValueError):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 

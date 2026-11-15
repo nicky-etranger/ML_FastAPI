@@ -3,22 +3,29 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Request
 
 from ml.dataset import load_dataset
-from ml.model import evaluate_churn_model, train_churn_model
+from ml.model import DEFAULT_HYPERPARAMETERS, evaluate_churn_model, train_churn_model
 from ml.model_store import save_churn_model
 from ml.preprocessing import split_churn_data
+from schemas.churn import TrainingConfigChurn
 
 router = APIRouter(prefix="/model", tags=["model"])
 
 
 @router.post("/train")
-def train(request: Request):
+def train(request: Request, config: TrainingConfigChurn | None = None):
+    config = config or TrainingConfigChurn()
     with request.app.state.training_lock:
         train_features, test_features, train_target, test_target = split_churn_data(load_dataset())
-        pipeline = train_churn_model(train_features, train_target)
+        pipeline = train_churn_model(train_features, train_target, config)
         metrics = evaluate_churn_model(pipeline, test_features, test_target)
         model = {
             "pipeline": pipeline,
-            "training": {"trained_at": datetime.now(timezone.utc).isoformat(), "metrics": metrics},
+            "training": {
+                "trained_at": datetime.now(timezone.utc).isoformat(),
+                "model_type": config.model_type,
+                "hyperparameters": DEFAULT_HYPERPARAMETERS[config.model_type] | config.hyperparameters,
+                "metrics": metrics,
+            },
         }
         save_churn_model(model)
         request.app.state.model = model
@@ -29,5 +36,11 @@ def train(request: Request):
 def status(request: Request):
     model = request.app.state.model
     if model is None:
-        return {"trained": False, "trained_at": None, "metrics": None}
+        return {
+            "trained": False,
+            "trained_at": None,
+            "model_type": None,
+            "hyperparameters": None,
+            "metrics": None,
+        }
     return {"trained": True, **model["training"]}

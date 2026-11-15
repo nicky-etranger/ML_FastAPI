@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
@@ -7,10 +8,28 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from ml.preprocessing import CATEGORICAL_COLUMNS, NUMERIC_COLUMNS
-from schemas.churn import PredictionResponseChurn
+from schemas.churn import PredictionResponseChurn, TrainingConfigChurn
 
 
-def train_churn_model(features: pd.DataFrame, target: pd.Series) -> Pipeline:
+CLASSIFIERS = {
+    "logreg": LogisticRegression,
+    "random_forest": RandomForestClassifier,
+}
+DEFAULT_HYPERPARAMETERS = {
+    "logreg": {"max_iter": 1000},
+    "random_forest": {"random_state": 42},
+}
+
+
+class TrainingError(ValueError):
+    pass
+
+
+def train_churn_model(
+    features: pd.DataFrame, target: pd.Series, config: TrainingConfigChurn | None = None
+) -> Pipeline:
+    config = config or TrainingConfigChurn()
+    parameters = DEFAULT_HYPERPARAMETERS[config.model_type] | config.hyperparameters
     numeric = Pipeline([
         ("imputer", SimpleImputer(strategy="median", keep_empty_features=True)),
         ("scaler", StandardScaler()),
@@ -23,11 +42,12 @@ def train_churn_model(features: pd.DataFrame, target: pd.Series) -> Pipeline:
         ("numeric", numeric, NUMERIC_COLUMNS),
         ("categorical", categorical, CATEGORICAL_COLUMNS),
     ])
-    pipeline = Pipeline([
-        ("preprocessing", preprocessing),
-        ("classifier", LogisticRegression(max_iter=1000)),
-    ])
-    return pipeline.fit(features, target)
+    try:
+        classifier = CLASSIFIERS[config.model_type](**parameters)
+        pipeline = Pipeline([("preprocessing", preprocessing), ("classifier", classifier)])
+        return pipeline.fit(features, target)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise TrainingError(f"Could not train the model: {exc}") from exc
 
 
 def evaluate_churn_model(

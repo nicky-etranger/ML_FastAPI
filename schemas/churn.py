@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,3 +37,10 @@ class DatasetRowChurn(BaseModel):
 class PredictionResponseChurn(BaseModel):
     churn: BinaryInt
     probabilities: dict[int, float]
+
+
+class TrainingConfigChurn(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    model_type: Literal["logreg", "random_forest"] = "logreg"
+    hyperparameters: dict[str, Any] = Field(default_factory=dict)
