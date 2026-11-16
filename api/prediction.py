@@ -1,6 +1,5 @@
 from typing import Annotated
 
-import pandas as pd
 from fastapi import APIRouter, Body, HTTPException, Request
 from pydantic import Field
 
@@ -56,6 +55,5 @@ def predict(
 
     batch = isinstance(features, list)
     rows = features if batch else [features]
-    frame = pd.DataFrame([row.model_dump() for row in rows])
-    results = predict_churn(model["pipeline"], frame)
+    results = predict_churn(model["pipeline"], rows)
     return results if batch else results[0]

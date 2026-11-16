@@ -24,7 +24,7 @@ def load_dataset() -> pd.DataFrame:
             for row in reader:
                 if None in row:
                     raise DatasetError(f"Invalid CSV row at line {reader.line_num}")
-                values = {key: value.strip() or None if value else None for key, value in row.items()}
+                values = {key: (value or "").strip() or None for key, value in row.items()}
                 try:
                     rows.append(DatasetRowChurn.model_validate(values).model_dump())
                 except ValidationError as exc:

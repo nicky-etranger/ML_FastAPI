@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
 
-from ml.dataset import load_dataset
+from ml.dataset import FEATURE_COLUMNS, load_dataset
 from ml.model import DEFAULT_HYPERPARAMETERS, evaluate_churn_model, train_churn_model
 from ml.model_store import save_churn_model
 from ml.preprocessing import split_churn_data
-from schemas.churn import TrainingConfigChurn
+from schemas.churn import FeatureVectorChurn, TrainingConfigChurn
 
 router = APIRouter(prefix="/model", tags=["model"])
 
@@ -44,3 +44,9 @@ def status(request: Request):
             "metrics": None,
         }
     return {"trained": True, **model["training"]}
+
+
+@router.get("/schema")
+def schema():
+    properties = FeatureVectorChurn.model_json_schema()["properties"]
+    return {"features": [{"name": name, "type": properties[name]["type"]} for name in FEATURE_COLUMNS]}

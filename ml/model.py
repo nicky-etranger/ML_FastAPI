@@ -1,14 +1,11 @@
 import pandas as pd
-from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from ml.preprocessing import CATEGORICAL_COLUMNS, NUMERIC_COLUMNS
-from schemas.churn import PredictionResponseChurn, TrainingConfigChurn
+from ml.preprocessing import churn_preprocessor, prepare_churn_features
+from schemas.churn import FeatureVectorChurn, PredictionResponseChurn, TrainingConfigChurn
 
 
 CLASSIFIERS = {
@@ -30,21 +27,9 @@ def train_churn_model(
 ) -> Pipeline:
     config = config or TrainingConfigChurn()
     parameters = DEFAULT_HYPERPARAMETERS[config.model_type] | config.hyperparameters
-    numeric = Pipeline([
-        ("imputer", SimpleImputer(strategy="median", keep_empty_features=True)),
-        ("scaler", StandardScaler()),
-    ])
-    categorical = Pipeline([
-        ("imputer", SimpleImputer(strategy="most_frequent", keep_empty_features=True)),
-        ("encoder", OneHotEncoder(handle_unknown="ignore")),
-    ])
-    preprocessing = ColumnTransformer([
-        ("numeric", numeric, NUMERIC_COLUMNS),
-        ("categorical", categorical, CATEGORICAL_COLUMNS),
-    ])
     try:
         classifier = CLASSIFIERS[config.model_type](**parameters)
-        pipeline = Pipeline([("preprocessing", preprocessing), ("classifier", classifier)])
+        pipeline = Pipeline([("preprocessing", churn_preprocessor()), ("classifier", classifier)])
         return pipeline.fit(features, target)
     except (TypeError, ValueError, OverflowError) as exc:
         raise TrainingError(f"Could not train the model: {exc}") from exc
@@ -60,7 +45,10 @@ def evaluate_churn_model(
     }
 
 
-def predict_churn(pipeline: Pipeline, features: pd.DataFrame) -> list[PredictionResponseChurn]:
+def predict_churn(
+    pipeline: Pipeline, rows: list[FeatureVectorChurn]
+) -> list[PredictionResponseChurn]:
+    features = prepare_churn_features(pd.DataFrame([row.model_dump() for row in rows]))
     labels = pipeline.predict(features)
     probabilities = pipeline.predict_proba(features)
     classes = [int(label) for label in pipeline.classes_]
