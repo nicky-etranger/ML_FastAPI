@@ -22,6 +22,10 @@ class TrainingError(ValueError):
     pass
 
 
+class PredictionError(ValueError):
+    pass
+
+
 def train_churn_model(
     features: pd.DataFrame, target: pd.Series, config: TrainingConfigChurn | None = None
 ) -> Pipeline:
@@ -48,9 +52,12 @@ def evaluate_churn_model(
 def predict_churn(
     pipeline: Pipeline, rows: list[FeatureVectorChurn]
 ) -> list[PredictionResponseChurn]:
-    features = prepare_churn_features(pd.DataFrame([row.model_dump() for row in rows]))
-    labels = pipeline.predict(features)
-    probabilities = pipeline.predict_proba(features)
+    try:
+        features = prepare_churn_features(pd.DataFrame([row.model_dump() for row in rows]))
+        labels = pipeline.predict(features)
+        probabilities = pipeline.predict_proba(features)
+    except (ValueError, TypeError) as exc:
+        raise PredictionError("Could not predict churn for the supplied features") from exc
     classes = [int(label) for label in pipeline.classes_]
     return [
         PredictionResponseChurn(

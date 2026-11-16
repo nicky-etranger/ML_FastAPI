@@ -1,12 +1,10 @@
 from contextlib import asynccontextmanager
 from threading import Lock
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 
 from api import dataset, model, prediction
-from ml.dataset import DatasetError
-from ml.model import TrainingError
+from api.errors import add_error_handlers
 from ml.model_store import load_churn_model
 
 
@@ -18,15 +16,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+add_error_handlers(app)
 app.include_router(dataset.router)
 app.include_router(model.router)
 app.include_router(prediction.router)
-
-
-@app.exception_handler(DatasetError)
-@app.exception_handler(TrainingError)
-async def bad_training_data(request: Request, exc: ValueError):
-    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @app.get("/")

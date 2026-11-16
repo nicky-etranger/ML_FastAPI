@@ -6,7 +6,7 @@ BinaryInt = Annotated[int, Field(ge=0, le=1)]
 
 
 class FeatureVectorChurn(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, strict=True)
 
     monthly_fee: float
     usage_hours: float
