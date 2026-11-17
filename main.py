@@ -10,7 +10,9 @@ from ml.model_store import load_churn_model
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.model = load_churn_model()
+    model = load_churn_model()
+    app.state.model = model
+    app.state.training_history = [model["training"]] if model else []
     app.state.training_lock = Lock()
     yield
 

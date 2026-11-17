@@ -44,6 +44,7 @@ def train(request: Request, config: TrainingConfigChurn | None = None):
         }
         save_churn_model(model)
         request.app.state.model = model
+        request.app.state.training_history.append(model["training"])
     return metrics
 
 
@@ -65,3 +66,9 @@ def status(request: Request):
 def schema():
     properties = FeatureVectorChurn.model_json_schema()["properties"]
     return {"features": [{"name": name, "type": properties[name]["type"]} for name in FEATURE_COLUMNS]}
+
+
+@router.get("/metrics")
+def metrics(request: Request):
+    history = request.app.state.training_history[-5:]
+    return {"latest": history[-1] if history else None, "history": history}
