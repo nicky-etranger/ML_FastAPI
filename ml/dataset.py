@@ -1,10 +1,13 @@
 import csv
+import logging
 
 import pandas as pd
 from pydantic import ValidationError
 
 from core import config
 from schemas.churn import DatasetRowChurn, FeatureVectorChurn
+
+logger = logging.getLogger("uvicorn.error").getChild(__name__)
 
 FEATURE_COLUMNS = list(FeatureVectorChurn.model_fields)
 DATASET_COLUMNS = [*FEATURE_COLUMNS, "churn"]
@@ -36,6 +39,7 @@ def load_dataset() -> pd.DataFrame:
 
     if not rows:
         raise DatasetError("The churn dataset is empty")
+    logger.info("Loaded churn dataset with %s rows", len(rows))
     return pd.DataFrame(rows, columns=DATASET_COLUMNS)
 
 

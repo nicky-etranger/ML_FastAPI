@@ -1,3 +1,4 @@
+import logging
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
@@ -7,6 +8,8 @@ from starlette.exceptions import HTTPException
 
 from ml.dataset import DatasetError
 from ml.model import PredictionError, TrainingError
+
+logger = logging.getLogger("uvicorn.error").getChild(__name__)
 
 ERROR_CODES = {
     DatasetError: "invalid_dataset",
@@ -20,14 +23,17 @@ def error_body(code, message, details=None):
 
 
 async def http_error(request: Request, exc: HTTPException):
+    code = HTTPStatus(exc.status_code).name.lower()
+    logger.warning("%s %s: %s", request.method, request.url.path, code)
     return JSONResponse(
         status_code=exc.status_code,
-        content=error_body(HTTPStatus(exc.status_code).name.lower(), exc.detail),
+        content=error_body(code, exc.detail),
         headers=exc.headers,
     )
 
 
 async def invalid_request(request: Request, exc: RequestValidationError):
+    logger.warning("%s %s: validation_error", request.method, request.url.path)
     details = [
         {"location": issue["loc"], "message": issue["msg"], "type": issue["type"]}
         for issue in exc.errors()
@@ -39,10 +45,13 @@ async def invalid_request(request: Request, exc: RequestValidationError):
 
 
 async def ml_error(request: Request, exc: ValueError):
-    return JSONResponse(status_code=400, content=error_body(ERROR_CODES[type(exc)], str(exc)))
+    code = ERROR_CODES[type(exc)]
+    logger.warning("%s %s: %s", request.method, request.url.path, code)
+    return JSONResponse(status_code=400, content=error_body(code, str(exc)))
 
 
 async def internal_error(request: Request, exc: Exception):
+    logger.error("%s %s: %s", request.method, request.url.path, type(exc).__name__)
     return JSONResponse(
         status_code=500,
         content=error_body("internal_server_error", "An internal server error occurred"),

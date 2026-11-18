@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Body, HTTPException, Request
@@ -10,6 +11,7 @@ from schemas.churn import FeatureVectorChurn, PredictionResponseChurn
 from schemas.errors import ErrorResponse
 
 router = APIRouter(tags=["model"])
+logger = logging.getLogger("uvicorn.error").getChild(__name__)
 
 FEATURE_EXAMPLE = {
     "monthly_fee": 19.99,
@@ -76,4 +78,5 @@ def predict(
     batch = isinstance(features, list)
     rows = features if batch else [features]
     results = predict_churn(model["pipeline"], rows)
+    logger.info("Predicted churn for %s customers", len(rows))
     return results if batch else results[0]

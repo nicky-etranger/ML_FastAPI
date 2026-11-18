@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
@@ -12,6 +13,7 @@ from schemas.churn import FeatureVectorChurn, TrainingConfigChurn
 from schemas.errors import ErrorResponse
 
 router = APIRouter(prefix="/model", tags=["model"])
+logger = logging.getLogger("uvicorn.error").getChild(__name__)
 
 
 @router.post(
@@ -45,6 +47,13 @@ def train(request: Request, config: TrainingConfigChurn | None = None):
         save_churn_model(model)
         request.app.state.model = model
         request.app.state.training_history.append(model["training"])
+        logger.info(
+            "Trained %s on %s rows (accuracy=%.4f, f1=%.4f)",
+            config.model_type,
+            len(train_features),
+            metrics["accuracy"],
+            metrics["f1"],
+        )
     return metrics
 
 
