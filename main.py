@@ -9,7 +9,6 @@ from api.errors import add_error_handlers
 from ml.dataset import DatasetError, load_dataset
 from ml.model_store import load_churn_model
 
-
 logger = logging.getLogger("uvicorn.error").getChild(__name__)
 
 

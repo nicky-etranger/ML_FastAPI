@@ -4,10 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Body, HTTPException, Request
 from pydantic import Field
 
-from api.errors import error_body
+from api.errors import error_example
 from ml.model import predict_churn
 from schemas.churn import FeatureVectorChurn, PredictionResponseChurn
-
 from schemas.errors import ErrorResponse
 
 router = APIRouter(tags=["model"])
@@ -44,21 +43,16 @@ FeatureBatch = Annotated[list[FeatureVectorChurn], Field(min_length=1)]
             }
         },
         400: {"model": ErrorResponse},
-        422: {
-            "model": ErrorResponse,
-            "content": {"application/json": {"example": error_body(
-                "validation_error",
-                "Invalid request data",
-                [{"location": ["body", "FeatureVectorChurn", "usage_hours"],
-                  "message": "Input should be a valid number", "type": "float_type"}],
-            )}},
-        },
-        503: {
-            "model": ErrorResponse,
-            "content": {"application/json": {"example": error_body(
-                "service_unavailable", MODEL_UNAVAILABLE
-            )}},
-        },
+        422: error_example(
+            "validation_error",
+            "Invalid request data",
+            [{
+                "location": ["body", "FeatureVectorChurn", "usage_hours"],
+                "message": "Input should be a valid number",
+                "type": "float_type",
+            }],
+        ),
+        503: error_example("service_unavailable", MODEL_UNAVAILABLE),
     },
 )
 def predict(

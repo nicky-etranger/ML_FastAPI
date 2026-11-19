@@ -7,7 +7,6 @@ from sklearn.pipeline import Pipeline
 from ml.preprocessing import churn_preprocessor, prepare_churn_features
 from schemas.churn import FeatureVectorChurn, PredictionResponseChurn, TrainingConfigChurn
 
-
 CLASSIFIERS = {
     "logreg": LogisticRegression,
     "random_forest": RandomForestClassifier,

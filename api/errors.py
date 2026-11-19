@@ -8,6 +8,7 @@ from starlette.exceptions import HTTPException
 
 from ml.dataset import DatasetError
 from ml.model import PredictionError, TrainingError
+from schemas.errors import ErrorResponse
 
 logger = logging.getLogger("uvicorn.error").getChild(__name__)
 
@@ -18,8 +19,15 @@ ERROR_CODES = {
 }
 
 
-def error_body(code, message, details=None):
+def error_body(code: str, message: str, details: list[dict] | None = None) -> dict:
     return {"code": code, "message": message, "details": details}
+
+
+def error_example(code: str, message: str, details: list[dict] | None = None) -> dict:
+    return {
+        "model": ErrorResponse,
+        "content": {"application/json": {"example": error_body(code, message, details)}},
+    }
 
 
 async def http_error(request: Request, exc: HTTPException):

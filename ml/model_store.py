@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import joblib
+from sklearn.pipeline import Pipeline
 
 from core import config
 from ml.model import DEFAULT_HYPERPARAMETERS
@@ -25,6 +26,8 @@ def load_churn_model() -> dict | None:
         model = joblib.load(config.MODEL_PATH)
     except FileNotFoundError:
         return None
+    if not isinstance(model["pipeline"], Pipeline):
+        raise ValueError("The saved model must contain a churn pipeline")
     model["training"].setdefault("model_type", "logreg")
     model["training"].setdefault("hyperparameters", DEFAULT_HYPERPARAMETERS["logreg"].copy())
     return model
